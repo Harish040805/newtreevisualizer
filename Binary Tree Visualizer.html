@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Binary Tree Visualization</title>
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7; /* Light gray background */
+}
+
+#canvas {
+    border: 1px solid #8bc34a; /* Green border */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.button-container {
+    margin-top: 20px;
+    background-color: #3e8e41; /* Dark green background */
+    padding: 10px; 
+    border-radius: 10px; 
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+button {
+    color: #fff; /* White text */
+    background-color: #32cd32; /* Lime green background */
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 0 10px;
+}
+
+button:hover {
+    background-color: #228b22; /* Forest green background on hover */
+}
+    </style>
+</head>
+<body>
+<center>
+    <h1>Binary Tree Visualization</h1>
+<div style="width: 600px; height: 500px; overflow: hidden;">
+    <div style="width: 100%; height: 100%; overflow: auto;">
+        <canvas id="canvas" width="2000" height="1500"></canvas>
+    </div>
+</div>
+    <div class="button-container">
+        <button id="insert-btn">Insert</button>
+        <button id="delete-btn">Delete</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+</center>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+            }
+        }
+
+        class BinaryTree {
+            constructor() {
+                this.root = null;
+            }
+
+            insert(value) {
+                const newNode = new Node(value);
+                if (this.root === null) {
+                    this.root = newNode;
+                } else {
+                    this._insertRecursive(this.root, newNode);
+                }
+            }
+
+            _insertRecursive(currentNode, newNode) {
+                if (newNode.value < currentNode.value) {
+                    if (currentNode.left === null) {
+                        currentNode.left = newNode;
+                    } else {
+                        this._insertRecursive(currentNode.left, newNode);
+                    }
+                } else {
+                    if (currentNode.right === null) {
+                        currentNode.right = newNode;
+                    } else {
+                        this._insertRecursive(currentNode.right, newNode);
+                    }
+                }
+            }
+
+            delete(value) {
+                this.root = this._deleteRecursive(this.root, value);
+            }
+
+            _deleteRecursive(currentNode, value) {
+                if (currentNode === null) {
+                    return currentNode;
+                }
+                if (value < currentNode.value) {
+                    currentNode.left = this._deleteRecursive(currentNode.left, value);
+                } else if (value > currentNode.value) {
+                    currentNode.right = this._deleteRecursive(currentNode.right, value);
+                } else {
+                    if (currentNode.left === null) {
+                        return currentNode.right;
+                    } else if (currentNode.right === null) {
+                        return currentNode.left;
+                    }
+                    let tempNode = this._findMin(currentNode.right);
+                    currentNode.value = tempNode.value;
+                    currentNode.right = this._deleteRecursive(currentNode.right, tempNode.value);
+                }
+                return currentNode;
+            }
+
+            _findMin(currentNode) {
+                while (currentNode.left !== null) {
+                    currentNode = currentNode.left;
+                }
+                return currentNode;
+            }
+
+            reset() {
+                this.root = null;
+            }
+
+            visualize() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                this._visualizeRecursive(this.root, canvas.width / 2, 50, 0);
+            }
+
+            _visualizeRecursive(currentNode, x, y, level) {
+                if (currentNode !== null) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 20, 0, Math.PI * 2);
+                    ctx.fillStyle = 'lime';
+                    ctx.fill();
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(currentNode.value, x, y);
+
+                    if (currentNode.left !== null) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + 20);
+                        ctx.lineTo(x - 100, y + 120);
+                        ctx.stroke();
+                        this._visualizeRecursive(currentNode.left, x - 100, y + 150, level + 1);
+                    }
+
+                    if (currentNode.right !== null) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, y + 20);
+                        ctx.lineTo(x + 100, y + 120);
+                        ctx.stroke();
+                        this._visualizeRecursive(currentNode.right, x + 100, y + 150, level + 1);
+                    }
+                }
+            }
+        }
+
+        const binaryTree = new BinaryTree();
+
+        document.getElementById('insert-btn').addEventListener('click', () => {
+            const inputValue = prompt("Enter a value to insert:");
+            if (inputValue) {
+                binaryTree.insert(parseInt(inputValue));
+                binaryTree.visualize();
+            }
+        });
+
+        document.getElementById('delete-btn').addEventListener('click', () => {
+            const deleteValue = prompt("Enter a value to delete:");
+            if (deleteValue) {
+                binaryTree.delete(parseInt(deleteValue));
+                binaryTree.visualize();
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            binaryTree.reset();
+            binaryTree.visualize();
+        });
+
+        binaryTree.visualize();
+    </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B-Tree Visualizer</title>
+<link rel="stylesheet" href="Tree Visualizer CSS.css">
+<link rel="icon" type="image/x-icon" href="https://t3.ftcdn.net/jpg/09/03/38/26/360_F_903382617_o2vVixfgvnDBsXF3WoejB1ss2MIwwSxI.jpg">
+</head>
+<body>
+<div class="container">
+<h1>B-Tree Visualizer</h1>
+<center>
+<input id="input-element" type="number" placeholder="Enter a number to insert">
+<button id="insert-button">Insert</button>
+<br><br>
+<input id="delete-element" type="number" placeholder="Enter a number to delete">
+<button id="delete-button">Delete</button>
+<br><br>
+<button id="reset-button">Reset</button>
+<br><br>
+</center>
+<div id="tree-visualization"></div>
+<button id="undo-button">Undo</button>
+</div>
+<script>
+class Node {
+constructor() {
+this.values = [];
+this.children = [];
+}
+}
+
+class BTree {
+constructor() {
+this.root = null;
+this.history = [];
+}
+
+insert(value) {
+this.history.push(JSON.parse(JSON.stringify(this.root)));
+if (this.root === null) {
+this.root = new Node();
+this.root.values.push(value);
+} else {
+this._insertRecursive(this.root, value);
+}
+}
+
+_insertRecursive(currentNode, value) {
+if (currentNode.values.length < 3) {
+currentNode.values.push(value);
+currentNode.values.sort((a, b) => a - b);
+} else {
+const middleIndex = Math.floor(currentNode.values.length / 2);
+const middleValue = currentNode.values[middleIndex];
+if (value < middleValue) {
+if (currentNode.children[0] === undefined) {
+currentNode.children[0] = new Node();
+this._insertRecursive(currentNode.children[0], value);
+} else {
+this._insertRecursive(currentNode.children[0], value);
+}
+} else {
+if (currentNode.children[1] === undefined) {
+currentNode.children[1] = new Node();
+this._insertRecursive(currentNode.children[1], value);
+} else {
+this._insertRecursive(currentNode.children[1], value);
+}
+}
+if (currentNode.children[0] && currentNode.children[0].values.length > 2) {
+this._splitChild(currentNode, 0);
+}
+if (currentNode.children[1] && currentNode.children[1].values.length > 2) {
+this._splitChild(currentNode, 1);
+}
+}
+}
+
+_splitChild(currentNode, childIndex) {
+const childNode = currentNode.children[childIndex];
+const middleIndex = Math.floor(childNode.values.length / 2);
+const middleValue = childNode.values[middleIndex];
+const newChildNode = new Node();
+newChildNode.values = childNode.values.slice(middleIndex + 1);
+childNode.values = childNode.values.slice(0, middleIndex);
+currentNode.values.splice(childIndex, 0, middleValue);
+currentNode.children.splice(childIndex + 1, 0, newChildNode);
+}
+
+delete(value) {
+this.history.push(JSON.parse(JSON.stringify(this.root)));
+this.root = this._deleteRecursive(this.root, value);
+}
+
+_deleteRecursive(currentNode, value) {
+if (currentNode === null) {
+return currentNode;
+}
+const index = currentNode.values.indexOf(value);
+if (index !== -1) {
+currentNode.values.splice(index, 1);
+} else {
+if (value < currentNode.values[0]) {
+currentNode.children[0] = this._deleteRecursive(currentNode.children[0], value);
+} else {
+currentNode.children[1] = this._deleteRecursive(currentNode.children[1], value);
+}
+}
+return currentNode;
+}
+
+reset() {
+this.history.push(JSON.parse(JSON.stringify(this.root)));
+this.root = null;
+}
+
+undo() {
+if (this.history.length > 0) {
+this.root = JSON.parse(JSON.stringify(this.history.pop()));
+}
+}
+
+visualize() {
+const treeVisualization = document.getElementById('tree-visualization');
+treeVisualization.innerHTML = '';
+this._visualizeRecursive(this.root, treeVisualization, 0, 0);
+}
+
+_visualizeRecursive(currentNode, parentElement, level, left) {
+if (currentNode !== null) {
+const nodeElement = document.createElement('div');
+nodeElement.textContent = currentNode.values.join(', ');
+nodeElement.className = 'node';
+nodeElement.style.top = `${window.innerHeight / 2 + level * 100}px`;
+nodeElement.style.left = `${window.innerWidth / 2 + left * 150}px`;
+nodeElement.setAttribute('node-value', currentNode.values.join(', '));
+parentElement.appendChild(nodeElement);
+
+if (currentNode.children) {
+for (let i = 0; i < currentNode.children.length; i++) {
+this._visualizeRecursive(currentNode.children[i], parentElement, level + 1, left - 1 + i);
+}
+}
+
+if (currentNode.children) {
+for (let i = 0; i < currentNode.children.length; i++) {
+const childElement = parentElement.querySelector(`div[node-value="${currentNode.children[i].values.join(', ')}"]`);
+if (childElement) {
+this._drawLine(nodeElement, childElement);
+}
+}
+}
+}
+}
+
+_drawLine(parentElement, childElement) {
+const lineElement = document.createElement('div');
+lineElement.className = 'line';
+
+const parentRect = parentElement.getBoundingClientRect();
+const childRect = childElement.getBoundingClientRect();
+
+lineElement.style.top = `${parentRect.top + parentRect.height / 2}px`;
+lineElement.style.left = `${parentRect.left + parentRect.width / 2}px`;
+lineElement.style.height = `${Math.abs(childRect.top - parentRect.top - parentRect.height / 2)}px`;
+lineElement.style.width = `${Math.abs(childRect.left - parentRect.left - parentRect.width / 2)}px`;
+
+if (childRect.top < parentRect.top) {
+lineElement.style.top = `${childRect.top + childRect.height / 2}px`;
+}
+if (childRect.left < parentRect.left) {
+lineElement.style.left = `${childRect.left + childRect.width / 2}px`;
+}
+
+document.getElementById('tree-visualization').appendChild(lineElement);
+}
+}
+
+const bTree = new BTree();
+
+document.getElementById('insert-button').addEventListener('click', () => {
+const value = parseInt(document.getElementById('input-element').value);
+if (!isNaN(value)) {
+bTree.insert(value);
+bTree.visualize();
+}
+});
+
+document.getElementById('delete-button').addEventListener('click', () => {
+const value = parseInt(document.getElementById('delete-element').value);
+if (!isNaN(value)) {
+bTree.delete(value);
+bTree.visualize();
+}
+});
+
+document.getElementById('reset-button').addEventListener('click', () => {
+bTree.reset();
+bTree.visualize();
+});
+
+document.getElementById('undo-button').addEventListener('click', () => {
+bTree.undo();
+bTree.visualize();
+});
+
+</script>
+</body>
+</html>
