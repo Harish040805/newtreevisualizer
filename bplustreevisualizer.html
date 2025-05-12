@@ -8,19 +8,16 @@
     <link rel="icon" type="image/x-icon" href="https://t3.ftcdn.net/jpg/09/03/38/26/360_F_903382617_o2vVixfgvnDBsXF3WoejB1ss2MIwwSxI.jpg">
 </head>
 <body>
-    <div class="container">
-        <h1>B+ Tree Visualizer</h1>
-        <center>
-            <input id="input-element" type="number" placeholder="Enter a number to insert">
-            <button id="insert-button">Insert</button>
-            <br><br>
-            <input id="delete-element" type="number" placeholder="Enter a number to delete">
-            <button id="delete-button">Delete</button>
-            <br><br>
-            <button id="reset-button">Reset</button>
-            <br><br>
-        </center>
-        <div id="tree-visualization"></div>
+<div class="container">
+            <h1>B+ Tree Visualization</h1>
+        <div class="canvas-container">
+            <div id="tree-visualization" style="position: relative; width: 800px; height: 600px;"></div>
+        </div>
+        <input id="input-element" type="number" placeholder="Enter value to insert">
+        <button id="insert-button">Insert</button>
+        <input id="delete-element" type="number" placeholder="Enter value to delete">
+        <button id="delete-button">Delete</button>
+        <button id="reset-button">Reset</button>
         <button id="undo-button">Undo</button>
     </div>
     <script>
