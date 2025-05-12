@@ -2,44 +2,36 @@ body {
     font-family: Arial, sans-serif;
     background-color: #fff;
 }
-canvas {
-    border: 1px solid black;
-}
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-	color: #fff;
-}
-.canvas-container {
-    width: 800px;
-    height: 600px;
-    overflow: auto;
-  }  
+
 .container {
     max-width: 800px;
     margin: 40px auto;
     padding: 20px;
-    background-color: green;
+    background-color: #34C759;
     border: 1px solid #ddd;
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
-.level-1 {
-    top: 20px;
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #fff;
 }
-.level-2 {
-    top: 50px;
+
+.canvas-container {
+    width: 800px;
+    height: 600px;
+    overflow: auto;
 }
-.level-3 {
-    top: 80px;
+
+#tree-visualization {
+    width: 100%;
+    height: 100%;
 }
-.line {
-    position: absolute;
-    background-color: #000;
-    transform-origin: top left;
-}
+
 .node {
-	color: white;
+    color: white;
     position: absolute;
     width: 50px;
     height: 50px;
@@ -51,35 +43,37 @@ h1 {
     align-items: center;
     font-size: 18px;
 }
-.left-node {
-    left: calc(50% - 150px);
+
+.line {
+    position: absolute;
+    background-color: #000;
+    transform-origin: top left;
 }
-.right-node {
-    left: calc(50% + 100px);
-}
-#input-element,#delete-element,reset-element {
+
+#input-element, #delete-element {
     width: 70%;
-    height: 20px;
-    padding: 10px;
+    max-width: 400px;
+    height: 30px; /* Changed height to match button height */
+    padding: 5px; /* Changed padding to match button padding */
     font-size: 18px;
     border: 1px solid #ccc;
     border-radius: 5px;
 }
-#insert-button, #delete-button, reset-button {
-    width: 10%;
+
+#insert-button, #delete-button, #reset-button {
+    min-width: 100px;
     height: 30px;
     padding: 5px;
     font-size: 18px;
     background-color: white;
-    color: #aaa;
+    color: #666; /* Changed text color to a darker color */
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Added a subtle shadow */
 }
-#reset-button:hover {
-    background-color: #ccc;
-}
-#tree-visualization {
-    width: 100%;
-    height: 100%; 
+
+#reset-button:hover, #insert-button:hover, #delete-button:hover {
+    background-color: #ddd; /* Changed hover background color to a darker color */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); /* Added a bit more shadow on hover */
 }
