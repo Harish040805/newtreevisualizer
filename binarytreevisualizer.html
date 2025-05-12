@@ -8,20 +8,18 @@
      <link rel="icon" type="image/x-icon" href="https://t3.ftcdn.net/jpg/09/03/38/26/360_F_903382617_o2vVixfgvnDBsXF3WoejB1ss2MIwwSxI.jpg">
 </head>
 <body>
-<center>
-    <h1>Binary Tree Visualization</h1>
-<div style="width: 600px; height: 500px; overflow: hidden;">
-    <div style="width: 100%; height: 100%; overflow: auto;">
-        <canvas id="canvas" width="2000" height="1500"></canvas>
+<div class="container">
+            <h1>Binary Tree Visualization</h1>
+        <div class="canvas-container">
+            <div id="tree-visualization" style="position: relative; width: 800px; height: 600px;"></div>
+        </div>
+        <input id="input-element" type="number" placeholder="Enter value to insert">
+        <button id="insert-button">Insert</button>
+        <input id="delete-element" type="number" placeholder="Enter value to delete">
+        <button id="delete-button">Delete</button>
+        <button id="reset-button">Reset</button>
+        <button id="undo-button">Undo</button>
     </div>
-</div>
-    <div class="button-container">
-        <button id="insert-btn">Insert</button>
-        <button id="delete-btn">Delete</button>
-        <button id="reset-btn">Reset</button>
-    </div>
-</center>
-
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
