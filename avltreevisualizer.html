@@ -5,304 +5,267 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AVL Tree Visualization</title>
     <style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f7f7f7; /* Light gray background */
-}
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7; /* Light gray background */
+        }
 
-#canvas {
-    border: 1px solid #8bc34a; /* Green border */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
+        #canvas {
+            border: 1px solid #8bc34a; /* Green border */
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
 
-.button-container {
-    margin-top: 20px;
-    background-color: #3e8e41; /* Dark green background */
-    padding: 10px; 
-    border-radius: 10px; 
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
+        .button-container {
+            margin-top: 20px;
+            background-color: #3e8e41; /* Dark green background */
+            padding: 10px; 
+            border-radius: 10px; 
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
 
-button {
-    color: #fff; /* White text */
-    background-color: #32cd32; /* Lime green background */
-    border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 10px;
-    cursor: pointer;
-    margin: 0 10px;
-}
+        button {
+            color: #fff; /* White text */
+            background-color: #32cd32; /* Lime green background */
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
 
-button:hover {
-    background-color: #228b22; /* Forest green background on hover */
-}
+        button:hover {
+            background-color: #228b22; /* Forest green background on hover */
+        }
     </style>
 </head>
 <body>
 <center>
     <h1>AVL Tree Visualization</h1>
-<div style="width: 600px; height: 500px; overflow: hidden;">
-    <div style="width: 100%; height: 100%; overflow: auto;">
-        <canvas id="canvas" width="2000" height="1500"></canvas>
-    </div>
-</div>
+    <canvas id="canvas" width="800" height="600"></canvas>
     <div class="button-container">
+        <input id="input-element" type="number" placeholder="Enter value to insert">
         <button id="insert-btn">Insert</button>
+        <input id="delete-element" type="number" placeholder="Enter value to delete">
         <button id="delete-btn">Delete</button>
         <button id="reset-btn">Reset</button>
+        <button id="undo-btn">Undo</button>
     </div>
 </center>
-    <script>
-class Node {
-    constructor(value) {
-        this.value = value;
-        this.left = null;
-        this.right = null;
-        this.height = 1;
-    }
-}
 
-class AVLTree {
-    constructor() {
-        this.root = null;
-        this.history = [];
-    }
-
-    getHeight(node) {
-        if (node === null) {
-            return 0;
+<script>
+    class Node {
+        constructor(value) {
+            this.value = value;
+            this.left = null;
+            this.right = null;
+            this.height = 1;
+            this.x = 0;
+            this.y = 0;
         }
-        return node.height;
     }
 
-    getBalanceFactor(node) {
-        if (node === null) {
-            return 0;
+    class AVLTree {
+        constructor() {
+            this.root = null;
+            this.history = [];
         }
-        return this.getHeight(node.left) - this.getHeight(node.right);
-    }
 
-    updateHeight(node) {
-        node.height = Math.max(this.getHeight(node.left), this.getHeight(node.right)) + 1;
-    }
-
-    rightRotate(node) {
-        const tempNode = node.left;
-        node.left = tempNode.right;
-        tempNode.right = node;
-
-        this.updateHeight(node);
-        this.updateHeight(tempNode);
-
-        return tempNode;
-    }
-
-    leftRotate(node) {
-        const tempNode = node.right;
-        node.right = tempNode.left;
-        tempNode.left = node;
-
-        this.updateHeight(node);
-        this.updateHeight(tempNode);
-
-        return tempNode;
-    }
-
-    rebalance(node) {
-        this.updateHeight(node);
-
-        const balanceFactor = this.getBalanceFactor(node);
-
-        if (balanceFactor > 1) {
-            if (this.getBalanceFactor(node.left) < 0) {
-                node.left = this.leftRotate(node.left);
+        getHeight(node) {
+            if (node === null) {
+                return 0;
             }
-            return this.rightRotate(node);
+            return node.height;
         }
 
-        if (balanceFactor < -1) {
-            if (this.getBalanceFactor(node.right) > 0) {
-                node.right = this.rightRotate(node.right);
+        getBalanceFactor(node) {
+            if (node === null) {
+                return 0;
             }
-            return this.leftRotate(node);
+            return this.getHeight(node.left) - this.getHeight(node.right);
         }
 
-        return node;
-    }
-
-    insert(value) {
-        this.history.push(JSON.parse(JSON.stringify(this.root)));
-        this.root = this._insertRecursive(this.root, value);
-    }
-
-    _insertRecursive(node, value) {
-        if (node === null) {
-            return new Node(value);
+        updateHeight(node) {
+            node.height = Math.max(this.getHeight(node.left), this.getHeight(node.right)) + 1;
         }
 
-        if (value < node.value) {
-            node.left = this._insertRecursive(node.left, value);
-        } else if (value > node.value) {
-            node.right = this._insertRecursive(node.right, value);
+        rightRotate(node) {
+            const tempNode = node.left;
+            node.left = tempNode.right;
+            tempNode.right = node;
+
+            this.updateHeight(node);
+            this.updateHeight(tempNode);
+
+            return tempNode;
         }
 
-        return this.rebalance(node);
-    }
+        leftRotate(node) {
+            const tempNode = node.right;
+            node.right = tempNode.left;
+            tempNode.left = node;
 
-    delete(value) {
-        this.history.push(JSON.parse(JSON.stringify(this.root)));
-        this.root = this._deleteRecursive(this.root, value);
-    }
+            this.updateHeight(node);
+            this.updateHeight(tempNode);
 
-    _deleteRecursive(node, value) {
-        if (node === null) {
+            return tempNode;
+        }
+
+        rebalance(node) {
+            this.updateHeight(node);
+
+            const balanceFactor = this.getBalanceFactor(node);
+
+            if (balanceFactor > 1) {
+                if (this.getBalanceFactor(node.left) < 0) {
+                    node.left = this.leftRotate(node.left);
+                }
+                return this.rightRotate(node);
+            }
+
+            if (balanceFactor < -1) {
+                if (this.getBalanceFactor(node.right) > 0) {
+                    node.right = this.rightRotate(node.right);
+                }
+                return this.leftRotate(node);
+            }
+
             return node;
         }
 
-        if (value < node.value) {
-            node.left = this._deleteRecursive(node.left, value);
-        } else if (value > node.value) {
-            node.right = this._deleteRecursive(node.right, value);
-        } else {
-            if (node.left === null) {
-                return node.right;
-            } else if (node.right === null) {
-                return node.left;
+        insert(value) {
+            this.history.push(JSON.parse(JSON.stringify(this.root)));
+            this.root = this._insertRecursive(this.root, value);
+        }
+
+        _insertRecursive(node, value) {
+            if (node === null) {
+                return new Node(value);
             }
 
-            let tempNode = this._findMin(node.right);
-            node.value = tempNode.value;
-            node.right = this._deleteRecursive(node.right, tempNode.value);
+            if (value < node.value) {
+                node.left = this._insertRecursive(node.left, value);
+            } else if (value > node.value) {
+                node.right = this._insertRecursive(node.right, value);
+            }
+
+            return this.rebalance(node);
         }
 
-        return this.rebalance(node);
-    }
-
-    _findMin(node) {
-        while (node.left !== null) {
-            node = node.left;
+        delete(value) {
+            this.history.push(JSON.parse(JSON.stringify(this.root)));
+            this.root = this._deleteRecursive(this.root, value);
         }
-        return node;
-    }
 
-    reset() {
-        this.history.push(JSON.parse(JSON.stringify(this.root)));
-        this.root = null;
-    }
+        _deleteRecursive(node, value) {
+            if (node === null) {
+                return node;
+            }
 
-    undo() {
-        if (this.history.length > 0) {
-            this.root = JSON.parse(JSON.stringify(this.history.pop()));
+            if (value < node.value) {
+                node.left = this._deleteRecursive(node.left, value);
+            } else if (value > node.value) {
+                node.right = this._deleteRecursive(node.right, value);
+            } else {
+                if (node.left === null) {
+                    return node.right;
+                } else if (node.right === null) {
+                    return node.left;
+                }
+
+                let tempNode = this._findMin(node.right);
+                node.value = tempNode.value;
+                node.right = this._deleteRecursive(node.right, tempNode.value);
+            }
+
+            return this.rebalance(node);
         }
-    }
 
-visualize() {
-    const treeVisualization = document.getElementById('tree-visualization');
-    const balanceStatus = document.getElementById('balance-status');
-    treeVisualization.innerHTML = '';
-    this._visualizeRecursive(this.root, treeVisualization, 0, 0);
-    const balanceFactor = this.getBalanceFactor(this.root);
-    if (balanceFactor > 1 || balanceFactor < -1) {
-        balanceStatus.textContent = 'Tree is unbalanced';
-        balanceStatus.style.color = 'red';
-    } else {
-        balanceStatus.textContent = 'Tree is balanced';
-        balanceStatus.style.color = 'green';
-    }
-}
+        _findMin(node) {
+            while (node.left !== null) {
+                node = node.left;
+            }
+            return node;
+        }
 
-    _visualizeRecursive(node, parentElement, level, left) {
-        if (node !== null) {
-            const nodeElement = document.createElement('div');
-            nodeElement.textContent = node.value;
-            nodeElement.className = 'node';
-            nodeElement.style.top = `${window.innerHeight / 2 + level * 100}px`;
-            nodeElement.style.left = `${window.innerWidth / 2 + left * 150}px`;
-            parentElement.appendChild(nodeElement);
+        reset() {
+            this.history.push(JSON.parse(JSON.stringify(this.root)));
+            this.root = null;
+        }
 
-            this._visualizeRecursive(node.left, parentElement, level + 1, left - 1);
-            this._visualizeRecursive(node.right, parentElement, level + 1, left + 1);
+        undo() {
+            if (this.history.length > 0) {
+                this.root = JSON.parse(JSON.stringify(this.history.pop()));
+            }
+        }
 
-            if (node.left !== null) {
-                const leftChildElement = parentElement.querySelector(`div[node-value="${node.left.value}"]`);
-                if (leftChildElement) {
-                    this._drawLine(nodeElement, leftChildElement);
+        visualize(ctx) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            this._visualizeRecursive(this.root, ctx, 400, 50);
+        }
+
+        _visualizeRecursive(node, ctx, x, y) {
+            if (node !== null) {
+                node.x = x;
+                node.y = y;
+                ctx.beginPath();
+                ctx.arc(x, y, 20, 0, 2 * Math.PI);
+                ctx.fillStyle = 'lightblue';
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(node.value, x, y);
+                if (node.left !== null) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + 20);
+                    ctx.lineTo(x - 100, y + 70);
+                    ctx.stroke();
+                    this._visualizeRecursive(node.left, ctx, x - 100, y + 100);
+                }
+                if (node.right !== null) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + 20);
+                    ctx.lineTo(x + 100, y + 70);
+                    ctx.stroke();
+                    this._visualizeRecursive(node.right, ctx, x + 100, y + 100);
                 }
             }
-
-            
-            if (node.right !== null) {
-                const rightChildElement = parentElement.querySelector(`div[node-value="${node.right.value}"]`);
-                if (rightChildElement) {
-                    this._drawLine(nodeElement, rightChildElement);
-                }
-            }
         }
     }
 
-    _drawLine(parentElement, childElement) {
-        const parentRect = parentElement.getBoundingClientRect();
-        const childRect = childElement.getBoundingClientRect();
+    const avlTree = new AVLTree();
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-        const lineElement = document.createElement('div');
-        lineElement.className = 'line';
-        lineElement.style.position = 'absolute';
-        lineElement.style.top = `${Math.min(parentRect.top, childRect.top)}px`;
-        lineElement.style.left = `${Math.min(parentRect.left, childRect.left)}px`;
-        lineElement.style.width = `${Math.abs(childRect.left - parentRect.left)}px`;
-        lineElement.style.height = `${Math.abs(childRect.top - parentRect.top)}px`;
-        lineElement.style.transform = `rotate(${this._calculateAngle(parentRect, childRect)}deg)`;
-        lineElement.style.borderBottom = '2px solid black';
+    document.getElementById('insert-btn').addEventListener('click', () => {
+        const inputValue = parseInt(document.getElementById('input-element').value);
+        if (!isNaN(inputValue)) {
+            avlTree.insert(inputValue);
+            avlTree.visualize(ctx);
+            document.getElementById('input-element').value = '';
+        }
+    });
 
-        document.body.appendChild(lineElement);
-    }
+    document.getElementById('delete-btn').addEventListener('click', () => {
+        const deleteValue = parseInt(document.getElementById('delete-element').value);
+        if (!isNaN(deleteValue)) {
+            avlTree.delete(deleteValue);
+            avlTree.visualize(ctx);
+            document.getElementById('delete-element').value = '';
+        }
+    });
 
-    _calculateAngle(parentRect, childRect) {
-        const dx = childRect.left - parentRect.left;
-        const dy = childRect.top - parentRect.top;
-        return Math.atan2(dy, dx) * 180 / Math.PI;
-    }
-}
+    document.getElementById('reset-btn').addEventListener('click', () => {
+        avlTree.reset();
+        avlTree.visualize(ctx);
+    });
 
-const avlTree = new AVLTree();
-
-const insertButton = document.getElementById('insert-button');
-const deleteButton = document.getElementById('delete-button');
-const resetButton = document.getElementById('reset-button');
-const inputElement = document.getElementById('input-element');
-const deleteElement = document.getElementById('delete-element');
-
-insertButton.addEventListener('click', () => {
-    const inputValue = parseInt(inputElement.value);
-    if (!isNaN(inputValue)) {
-        avlTree.insert(inputValue);
-        avlTree.visualize();
-        inputElement.value = '';
-    }
-});
-
-deleteButton.addEventListener('click', () => {
-    const deleteValue = parseInt(deleteElement.value);
-    if (!isNaN(deleteValue)) {
-        avlTree.delete(deleteValue);
-        avlTree.visualize();
-        deleteElement.value = '';
-    }
-});
-
-resetButton.addEventListener('click', () => {
-    avlTree.reset();
-    avlTree.visualize();
-});
-
-const undoButton = document.getElementById('undo-button');
-
-undoButton.addEventListener('click', () => {
-    avlTree.undo();
-    avlTree.visualize();
-});
-	</script>
+    document.getElementById('undo-btn').addEventListener('click', () => {
+        avlTree.undo();
+        avlTree.visualize(ctx);
+    });
+</script>
 </body>
 </html>
