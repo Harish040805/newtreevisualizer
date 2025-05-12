@@ -21,7 +21,7 @@
         <button id="undo-button">Undo</button>
     </div>
     <script>
-        // B+ Tree Node Constructor
+     // B+ Tree Node Constructor
 class Node {
     constructor(isLeaf = false) {
         this.isLeaf = isLeaf;   // True if leaf node, otherwise internal node
@@ -52,6 +52,7 @@ class BPlusTree {
 
         this._insertNonFull(this.root, key);
         this.history.push({ action: 'insert', key });
+        this.updateUI();  // Update the UI after each insert
     }
 
     // Insert helper for non-full nodes
@@ -92,6 +93,7 @@ class BPlusTree {
     delete(key) {
         this._delete(this.root, key);
         this.history.push({ action: 'delete', key });
+        this.updateUI();  // Update the UI after each delete
     }
 
     _delete(node, key) {
@@ -109,15 +111,46 @@ class BPlusTree {
         } else if (lastAction.action === 'delete') {
             this.insert(lastAction.key); // Undo delete by re-inserting the key
         }
+        this.updateUI();  // Update the UI after undo
     }
 
     // Reset Method
     reset() {
         this.root = new Node(true); // Reset root to initial state (empty tree)
         this.history = []; // Clear history
+        this.updateUI();  // Update the UI after reset
     }
 
-    // Traverse and print tree (for visualization)
+    // Update UI to reflect tree structure
+    updateUI() {
+        const treeContainer = document.getElementById('treeDisplay');
+        treeContainer.innerHTML = ''; // Clear existing tree
+        this._renderTree(this.root, treeContainer);
+    }
+
+    // Helper method to recursively render the tree
+    _renderTree(node, container) {
+        const nodeDiv = document.createElement('div');
+        nodeDiv.classList.add('tree-node');
+        nodeDiv.textContent = `Keys: ${node.keys.join(', ')}`;
+
+        if (node.isLeaf) {
+            nodeDiv.style.backgroundColor = 'lightgreen';  // Highlight leaf nodes
+        } else {
+            nodeDiv.style.backgroundColor = 'lightblue';  // Highlight internal nodes
+        }
+
+        container.appendChild(nodeDiv);
+
+        // Recursively render child nodes for internal nodes
+        if (!node.isLeaf) {
+            node.children.forEach(child => {
+                this._renderTree(child, container);
+            });
+        }
+    }
+
+    // Traverse and print tree in the console (optional)
     printTree(node = this.root, level = 0) {
         if (node.isLeaf) {
             console.log("Level " + level + " Leaf: " + node.keys.join(", "));
@@ -140,24 +173,24 @@ let bPlusTree = new BPlusTree(order);
 // UI Buttons for Insert, Delete, Undo, and Reset
 document.getElementById('insertBtn').addEventListener('click', () => {
     let key = parseInt(document.getElementById('inputKey').value);
-    bPlusTree.insert(key);
-    bPlusTree.printTree();
+    if (!isNaN(key)) {
+        bPlusTree.insert(key);
+    }
 });
 
 document.getElementById('deleteBtn').addEventListener('click', () => {
     let key = parseInt(document.getElementById('inputKey').value);
-    bPlusTree.delete(key);
-    bPlusTree.printTree();
+    if (!isNaN(key)) {
+        bPlusTree.delete(key);
+    }
 });
 
 document.getElementById('undoBtn').addEventListener('click', () => {
     bPlusTree.undo();
-    bPlusTree.printTree();
 });
 
 document.getElementById('resetBtn').addEventListener('click', () => {
     bPlusTree.reset();
-    bPlusTree.printTree();
 });
 
 </script>
