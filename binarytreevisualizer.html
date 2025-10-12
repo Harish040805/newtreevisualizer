@@ -180,34 +180,47 @@ angular.module('bstApp', [])
     if(!$scope.$$phase) $scope.$applyAsync();
   };
 
-  vm.update = function(){
-    vm.nodes=[]; vm.edges=[];
-    let xIndex = 0; const levelH = 80, spacingX = 50;
+vm.update = function(){
+  vm.nodes = [];
+  vm.edges = [];
 
-    function inorder(n, depth){
-      if(!n) return;
-      inorder(n.left, depth+1);
-      const x = xIndex++*spacingX+40;
-      const y = depth*levelH+30;
-      vm.nodes.push({value:n.value, x:x, y:y});
-      inorder(n.right, depth+1);
-    }
-    inorder(vm.root,0);
+  const levelH = 80; 
+  const spacingX = 40; 
 
-    function find(v){ return vm.nodes.find(n=>n.value===v); }
-    function connect(n){
-      if(!n) return;
-      if(n.left) vm.edges.push({x1:find(n.value).x, y1:find(n.value).y+18, x2:find(n.left.value).x, y2:find(n.left.value).y-18});
-      if(n.right) vm.edges.push({x1:find(n.value).x, y1:find(n.value).y+18, x2:find(n.right.value).x, y2:find(n.right.value).y-18});
-      connect(n.left); connect(n.right);
-    }
-    connect(vm.root);
-  };
+  function layout(node, depth, xMin, xMax){
+    if(!node) return null;
+
+    const leftPos = layout(node.left, depth+1, xMin, xMax);
+    const rightPos = layout(node.right, depth+1, xMin, xMax);
+
+    let x;
+    if(leftPos && rightPos) x = (leftPos + rightPos) / 2;
+    else if(leftPos) x = leftPos + spacingX;
+    else if(rightPos) x = rightPos - spacingX;
+    else x = (xMin + xMax) / 2;
+
+    const y = depth * levelH + 30;
+    node._x = x;
+    node._y = y;
+    vm.nodes.push({value: node.value, x: x, y: y});
+
+    return x;
+  }
+
+  layout(vm.root, 0, 0, 1000); 
+
+  function connect(n){
+    if(!n) return;
+    if(n.left) vm.edges.push({x1:n._x, y1:n._y+18, x2:n.left._x, y2:n.left._y-18});
+    if(n.right) vm.edges.push({x1:n._x, y1:n._y+18, x2:n.right._x, y2:n.right._y-18});
+    connect(n.left);
+    connect(n.right);
+  }
+  connect(vm.root);
+};
 
   vm.showAbout = false;
 }]);
 </script>
 </body>
 </html>
-
-
