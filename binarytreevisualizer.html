@@ -1,163 +1,209 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" ng-app="bstApp">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Binary Tree Visualization</title>
-    <link rel="stylesheet" href="treevisualizercss.css">
-     <link rel="icon" type="image/x-icon" href="https://t3.ftcdn.net/jpg/09/03/38/26/360_F_903382617_o2vVixfgvnDBsXF3WoejB1ss2MIwwSxI.jpg">
+<meta charset="utf-8"/>
+<title>Binary Tree Simulator</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0px; background: #15c26b; color: #111827; }
+  h1 { font-size: 30px; margin-top: 0px; margin-bottom: 0px; }
+  .controls { display: flex; gap: 8px; flex-direction: column; flex-wrap: wrap; margin-bottom: 14px; margin-left: 10px;}
+  input[type="number"], input[type="text"] { padding: 15px 10px; border-radius: 6px; border: 1px solid #d1d5db; width: 70%; }
+  button { padding: 8px 12px; border-radius: 6px; border: none; cursor: pointer; background: #25eb88; color: white; font-weight: 600; }
+  button.secondary { background: #dc2626; }
+  button.warn { background: #25eb88; }
+  button.undo { background: #25eb88; }
+  button.redo { background: #25eb88; }
+  .main-container { display: flex; gap: 12px; }
+  #canvasWrap { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); height: 594px; width: 1000px; overflow: auto; }
+  .output-container { width: 300px; display: flex; flex-direction: column; gap: 8px; }
+
+  svg { width: 100%; height: 99%; }
+  .edge { stroke: #9ca3af; stroke-width: 2px; }
+  .node circle { fill: white; stroke: #1e293b; stroke-width: 2px; transition: 0.3s; }
+  .node text { font-weight: bold; font-size: 12px; text-anchor: middle; dominant-baseline: middle; }
+  .highlight circle { fill: #fde68a; stroke: #b45309; }
+  .rotation circle { fill: #dbeafe; stroke: #1e3a8a; }
+  .log { background: #0f172a; color: #f1f5f9; font-family: monospace; padding: 8px; height: 598px; width: 445px; overflow-y: auto; border-radius: 6px; font-size: 13px; }
+  .status { padding: 6px 10px; border-radius: 6px; font-weight: 650; text-align: center; }
+  .status.ok { background-color: #25eb88; color: white; }
+  .status.warn { background-color: #dc2626; color: white; }
+
+  .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
+  .overlay-content { background: white; padding: 20px 30px; border-radius: 10px; width: 50%; max-width: 600px; text-align: left; position: relative; z-index: 10000; }
+  .close-btn { position: absolute; top: 10px; right: 15px; background-color: #b40909; color: #fff; border: none; font-size: 24px; cursor: pointer; z-index: 10001; }
+  .close-btn:hover { background-color: red; color: #fff; }
+</style>
 </head>
-<body>
-<div class="container">
-            <h1>Binary Tree Visualization</h1>
-        <div class="canvas-container">
-            <div id="tree-visualization" style="position: relative; width: 800px; height: 600px;"></div>
-        </div>
-        <input id="input-element" type="number" placeholder="Enter value to insert">
-        <button id="insert-button">Insert</button>
-        <input id="delete-element" type="number" placeholder="Enter value to delete">
-        <button id="delete-button">Delete</button>
-        <button id="reset-button">Reset</button>
-        <button id="undo-button">Undo</button>
-    </div>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+<body ng-controller="BstCtrl as vm">
+<h1 style="background-color: #15c26b; color: #fff; padding: 15px;">
+  <input type="number" ng-model="vm.inputValue" placeholder="Enter value">
+  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
+  Binary Tree Simulator
+  &nbsp; &nbsp; 
+</h1>
+<div class="status ok">
+  Standard Binary Search Tree
+</div>
+<div ng-show="vm.showAbout" class="overlay">
+  <div class="overlay-content">
+    <h2>About Binary Tree Simulator
+      <button class="close-btn" ng-click="vm.showAbout = false">&times;</button>
+    </h2>
+    <p>
+    * Standard Binary Search Tree (BST) where left child &lt; parent &lt; right child.<br>
+    * No automatic balancing. <br>
+    * Simple visual representation with insert and delete operations. <br>
+    </p>
+  </div>
+</div>
+<div class="main-container">
+<div class="controls">
+  <br><br><br>
+  <button ng-click="vm.insert()">Insert</button>
+  <button class="secondary" ng-click="vm.remove()">Delete</button>
+  <button class="warn" ng-click="vm.clear()">Clear</button>
+  <button class="undo" ng-click="vm.undo()">Undo</button>
+  <button class="redo" ng-click="vm.redo()">Redo</button>
+  <button ng-click="vm.showAbout = true">About</button>
+</div>
 
-        class Node {
-            constructor(value) {
-                this.value = value;
-                this.left = null;
-                this.right = null;
-            }
-        }
+<div id="canvasWrap">
+  <svg>
+    <g ng-repeat="edge in vm.edges">
+      <line class="edge" ng-attr-x1="{{edge.x1}}" ng-attr-y1="{{edge.y1}}" ng-attr-x2="{{edge.x2}}" ng-attr-y2="{{edge.y2}}"></line>
+    </g>
+    <g ng-repeat="node in vm.nodes" class="node" ng-class="{'highlight': node.highlight}" ng-attr-transform="translate({{node.x}},{{node.y}})">
+      <circle r="18"></circle>
+      <text>{{node.value}}</text>
+    </g>
+  </svg>
+</div>
+<div class="log">
+  <div ng-repeat="line in vm.log track by $index">{{::$index + 1}}. {{line}}</div>
+</div>
+</div>
 
-        class BinaryTree {
-            constructor() {
-                this.root = null;
-            }
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+<script>
+angular.module('bstApp', [])
+.controller('BstCtrl', ['$scope', function($scope){
+  const vm = this;
+  vm.root = null;
+  vm.nodes = [];
+  vm.edges = [];
+  vm.log = [];
 
-            insert(value) {
-                const newNode = new Node(value);
-                if (this.root === null) {
-                    this.root = newNode;
-                } else {
-                    this._insertRecursive(this.root, newNode);
-                }
-            }
+  vm.undoStack = [];
+  vm.redoStack = [];
 
-            _insertRecursive(currentNode, newNode) {
-                if (newNode.value < currentNode.value) {
-                    if (currentNode.left === null) {
-                        currentNode.left = newNode;
-                    } else {
-                        this._insertRecursive(currentNode.left, newNode);
-                    }
-                } else {
-                    if (currentNode.right === null) {
-                        currentNode.right = newNode;
-                    } else {
-                        this._insertRecursive(currentNode.right, newNode);
-                    }
-                }
-            }
+  function Node(val){ this.value = val; this.left = null; this.right = null; }
 
-            delete(value) {
-                this.root = this._deleteRecursive(this.root, value);
-            }
+  function cloneTree(node){
+    if(!node) return null;
+    const n = new Node(node.value);
+    n.left = cloneTree(node.left);
+    n.right = cloneTree(node.right);
+    return n;
+  }
 
-            _deleteRecursive(currentNode, value) {
-                if (currentNode === null) {
-                    return currentNode;
-                }
-                if (value < currentNode.value) {
-                    currentNode.left = this._deleteRecursive(currentNode.left, value);
-                } else if (value > currentNode.value) {
-                    currentNode.right = this._deleteRecursive(currentNode.right, value);
-                } else {
-                    if (currentNode.left === null) {
-                        return currentNode.right;
-                    } else if (currentNode.right === null) {
-                        return currentNode.left;
-                    }
-                    let tempNode = this._findMin(currentNode.right);
-                    currentNode.value = tempNode.value;
-                    currentNode.right = this._deleteRecursive(currentNode.right, tempNode.value);
-                }
-                return currentNode;
-            }
+  function insertNode(root, key){
+    if(!root) return new Node(key);
+    if(key < root.value) root.left = insertNode(root.left, key);
+    else if(key > root.value) root.right = insertNode(root.right, key);
+    return root;
+  }
 
-            _findMin(currentNode) {
-                while (currentNode.left !== null) {
-                    currentNode = currentNode.left;
-                }
-                return currentNode;
-            }
+  function minNode(n){ while(n.left) n = n.left; return n; }
 
-            reset() {
-                this.root = null;
-            }
+  function deleteNode(root, key){
+    if(!root) return root;
+    if(key < root.value) root.left = deleteNode(root.left, key);
+    else if(key > root.value) root.right = deleteNode(root.right, key);
+    else {
+      if(!root.left) return root.right;
+      if(!root.right) return root.left;
+      const t = minNode(root.right);
+      root.value = t.value;
+      root.right = deleteNode(root.right, t.value);
+    }
+    return root;
+  }
 
-            visualize() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                this._visualizeRecursive(this.root, canvas.width / 2, 50, 0);
-            }
+  function saveState(){ vm.undoStack.push(cloneTree(vm.root)); vm.redoStack = []; }
 
-            _visualizeRecursive(currentNode, x, y, level) {
-                if (currentNode !== null) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, 20, 0, Math.PI * 2);
-                    ctx.fillStyle = 'lime';
-                    ctx.fill();
-                    ctx.font = '16px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = 'black';
-                    ctx.fillText(currentNode.value, x, y);
+  vm.insert = function(){
+    const v = Number(vm.inputValue);
+    if(isNaN(v)){ vm._log('Invalid input'); return; }
+    saveState();
+    vm.root = insertNode(vm.root, v);
+    vm._log('Inserted ' + v);
+    vm.update();
+  };
 
-                    if (currentNode.left !== null) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, y + 20);
-                        ctx.lineTo(x - 100, y + 120);
-                        ctx.stroke();
-                        this._visualizeRecursive(currentNode.left, x - 100, y + 150, level + 1);
-                    }
+  vm.remove = function(){
+    const v = Number(vm.inputValue);
+    if(isNaN(v)){ vm._log('Invalid input'); return; }
+    saveState();
+    vm.root = deleteNode(vm.root, v);
+    vm._log('Deleted ' + v);
+    vm.update();
+  };
 
-                    if (currentNode.right !== null) {
-                        ctx.beginPath();
-                        ctx.moveTo(x, y + 20);
-                        ctx.lineTo(x + 100, y + 120);
-                        ctx.stroke();
-                        this._visualizeRecursive(currentNode.right, x + 100, y + 150, level + 1);
-                    }
-                }
-            }
-        }
+  vm.clear = function(){
+    saveState();
+    vm.root = null; vm.nodes=[]; vm.edges=[];
+    vm._log('Tree cleared');
+    vm.update();
+  };
 
-        const binaryTree = new BinaryTree();
+  vm.undo = function(){
+    if(vm.undoStack.length===0){ vm._log('Nothing to undo'); return; }
+    vm.redoStack.push(cloneTree(vm.root));
+    vm.root = vm.undoStack.pop();
+    vm._log('Undo performed');
+    vm.update();
+  };
 
-        document.getElementById('insert-btn').addEventListener('click', () => {
-            const inputValue = prompt("Enter a value to insert:");
-            if (inputValue) {
-                binaryTree.insert(parseInt(inputValue));
-                binaryTree.visualize();
-            }
-        });
+  vm.redo = function(){
+    if(vm.redoStack.length===0){ vm._log('Nothing to redo'); return; }
+    vm.undoStack.push(cloneTree(vm.root));
+    vm.root = vm.redoStack.pop();
+    vm._log('Redo performed');
+    vm.update();
+  };
 
-        document.getElementById('delete-btn').addEventListener('click', () => {
-            const deleteValue = prompt("Enter a value to delete:");
-            if (deleteValue) {
-                binaryTree.delete(parseInt(deleteValue));
-                binaryTree.visualize();
-            }
-        });
+  vm._log = function(msg){
+    vm.log.push('['+new Date().toLocaleTimeString()+'] '+msg);
+    if(vm.log.length>200) vm.log.shift();
+    if(!$scope.$$phase) $scope.$applyAsync();
+  };
 
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            binaryTree.reset();
-            binaryTree.visualize();
-        });
+  vm.update = function(){
+    vm.nodes=[]; vm.edges=[];
+    let xIndex = 0; const levelH = 80, spacingX = 50;
 
-        binaryTree.visualize();
-    </script>
+    function inorder(n, depth){
+      if(!n) return;
+      inorder(n.left, depth+1);
+      const x = xIndex++*spacingX+40;
+      const y = depth*levelH+30;
+      vm.nodes.push({value:n.value, x:x, y:y});
+      inorder(n.right, depth+1);
+    }
+    inorder(vm.root,0);
+
+    function find(v){ return vm.nodes.find(n=>n.value===v); }
+    function connect(n){
+      if(!n) return;
+      if(n.left) vm.edges.push({x1:find(n.value).x, y1:find(n.value).y+18, x2:find(n.left.value).x, y2:find(n.left.value).y-18});
+      if(n.right) vm.edges.push({x1:find(n.value).x, y1:find(n.value).y+18, x2:find(n.right.value).x, y2:find(n.right.value).y-18});
+      connect(n.left); connect(n.right);
+    }
+    connect(vm.root);
+  };
+
+  vm.showAbout = false;
+}]);
+</script>
 </body>
 </html>
