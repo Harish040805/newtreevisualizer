@@ -183,9 +183,8 @@ angular.module('bstApp', [])
 vm.update = function(){
   vm.nodes = [];
   vm.edges = [];
-
-  const levelH = 80; 
-  const spacingX = 40; 
+  const levelH = 80;
+  const canvasWidth = 1000;
 
   function layout(node, depth, xMin, xMax){
     if(!node) return null;
@@ -194,20 +193,20 @@ vm.update = function(){
     const rightPos = layout(node.right, depth+1, xMin, xMax);
 
     let x;
-    if(leftPos && rightPos) x = (leftPos + rightPos) / 2;
-    else if(leftPos) x = leftPos + spacingX;
-    else if(rightPos) x = rightPos - spacingX;
-    else x = (xMin + xMax) / 2;
+    if(leftPos !== null && rightPos !== null) x = (leftPos + rightPos)/2;
+    else if(leftPos !== null) x = leftPos + 40;
+    else if(rightPos !== null) x = rightPos - 40;
+    else x = (xMin + xMax)/2;
 
-    const y = depth * levelH + 30;
+    const y = depth*levelH + 30;
     node._x = x;
     node._y = y;
-    vm.nodes.push({value: node.value, x: x, y: y});
+    vm.nodes.push({value: node.value, x:x, y:y});
 
     return x;
   }
 
-  layout(vm.root, 0, 0, 1000); 
+  layout(vm.root, 0, 0, canvasWidth);
 
   function connect(n){
     if(!n) return;
@@ -216,6 +215,7 @@ vm.update = function(){
     connect(n.left);
     connect(n.right);
   }
+
   connect(vm.root);
 };
 
@@ -224,3 +224,4 @@ vm.update = function(){
 </script>
 </body>
 </html>
+
