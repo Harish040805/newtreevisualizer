@@ -1,14 +1,14 @@
 :root {
-  --bg: #0e0e10;
-  --panel: #1a1a1d;
-  --accent: #00e0ff;
-  --accent2: #ff007a;
-  --text: #eaeaea;
+  --bg: #0d1f14;
+  --panel: #12281c;
+  --accent: #25eb88;
+  --accent2: #15c26b;
+  --text: #f0fff5;
   --success: #00ff99;
-  --danger: #ff4444;
-  --highlight: #ffaa00;
+  --danger: #ff4b4b;
+  --highlight: #d6ff00;
   --radius: 12px;
-  --shadow: 0 0 12px rgba(0,0,0,0.5);
+  --shadow: 0 0 12px rgba(0, 0, 0, 0.5);
   --trans: all 0.3s ease;
 }
 
@@ -32,6 +32,7 @@ header {
   font-weight: bold;
   letter-spacing: 1px;
   color: var(--accent);
+  text-shadow: 0 0 10px rgba(37, 235, 136, 0.5);
 }
 
 .control-panel {
@@ -46,8 +47,10 @@ header {
   border-bottom: 2px solid var(--accent);
 }
 
-select, input[type="number"], button {
-  background: #121214;
+select,
+input[type="number"],
+button {
+  background: #0d1f14;
   color: var(--text);
   border: 1px solid var(--accent);
   padding: 0.5rem 0.8rem;
@@ -56,30 +59,32 @@ select, input[type="number"], button {
   font-size: 0.95rem;
 }
 
-select:hover, input[type="number"]:focus, button:hover {
+select:hover,
+input[type="number"]:focus,
+button:hover {
   border-color: var(--accent2);
   outline: none;
   transform: scale(1.03);
 }
 
 button {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
   color: #fff;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 0 10px rgba(0, 224, 255, 0.2);
+  box-shadow: 0 0 10px rgba(37, 235, 136, 0.3);
 }
 
 button:active {
   transform: scale(0.96);
-  box-shadow: 0 0 6px rgba(0, 224, 255, 0.5);
+  box-shadow: 0 0 6px rgba(37, 235, 136, 0.6);
 }
 
 #treeArea {
   flex: 1;
   position: relative;
   overflow: auto;
-  background: linear-gradient(180deg, #111, #0d0d0f);
+  background: linear-gradient(180deg, #0b1a10, #061109);
   border-top: 1px solid var(--accent2);
   display: flex;
   justify-content: center;
@@ -105,7 +110,7 @@ svg {
 }
 
 .node circle.black {
-  fill: #000;
+  fill: #0b1a10;
   stroke: #888;
 }
 
@@ -139,12 +144,12 @@ svg {
 
 .tooltip {
   position: absolute;
-  background: #202022;
+  background: #12301f;
   color: var(--text);
   padding: 0.4rem 0.6rem;
   border-radius: 6px;
   font-size: 13px;
-  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s;
@@ -175,14 +180,23 @@ footer {
   text-align: center;
   padding: 0.8rem;
   font-size: 0.85rem;
-  color: #aaa;
-  border-top: 1px solid #333;
+  color: #c5f3d6;
+  border-top: 1px solid var(--accent2);
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent); }
-  70% { transform: scale(1.05); box-shadow: 0 0 20px 5px rgba(0,224,255,0.2); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent); }
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--accent);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px 5px rgba(37, 235, 136, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--accent);
+  }
 }
 
 .node circle.pulse {
@@ -197,7 +211,9 @@ footer {
   header {
     font-size: 1.2rem;
   }
-  button, select, input {
+  button,
+  select,
+  input {
     width: 90%;
   }
 }
