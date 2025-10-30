@@ -78,7 +78,7 @@
   &nbsp; &nbsp; 
 </h1>
 <div class="status" ng-class="{'ok': vm.isBalanced, 'warn': !vm.isBalanced}">
-  {{vm.isBalanced ? 'Tree is Balanced' : 'Tree is NOT Balanced'}}
+  {{vm.isBalanced ? 'Tree is Balanced' : 'Tree is NOT Balanced'}} - Balance Factor: {{vm.balanceFactor}}
 </div>
 <div ng-show="vm.showAbout" class="overlay">
   <div class="overlay-content">
@@ -346,18 +346,17 @@ vm.balanceTree = function(){
     connect(vm.root);
 
     vm.isBalanced = checkBalance(vm.root);
+    vm.balanceFactor = vm.root ? (h(vm.root.left) - h(vm.root.right)) : 0;
   };
 
   vm.showAbout = false;
 
-// Initialize overlay flags
 vm.showRotationAlert = false;
 vm.rotationMessage = '';
 
-// Function to close the overlay
 vm.closeRotationAlert = function() {
   vm.showRotationAlert = false;
-  $scope.$applyAsync(); // make sure Angular updates the view
+  $scope.$applyAsync();
 };
 
 }]);
