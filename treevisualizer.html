@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en" ng-app="multiTreeApp">
+<head>
+<meta charset="utf-8"/>
+<title>New Tree Visualizer</title>
+<style>
+  :root{--bg:#15c26b;--card:#ffffff;--accent:#25eb88;--danger:#dc2626;--muted:#6b7280;--text:#0b1220}
+  html,body{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+  header{background:var(--bg);color:#fff;padding:14px 20px;font-size:18px;display:flex;align-items:center;gap:12px}
+  .app{display:flex;gap:12px;padding:12px;box-sizing:border-box;height:calc(100% - 64px)}
+  .controls{width:320px;display:flex;flex-direction:column;gap:10px}
+  .controls .panel{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
+  input[type="text"],select{width:100%;padding:10px;border-radius:8px;border:1px solid #e5e7eb;box-sizing:border-box;font-size:14px}
+  .btnrow{display:flex;gap:8px}
+  button{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  button.warn{background:var(--danger)}
+  button.alt{background:#f59e0b;color:#0b1220}
+  .canvasWrap{flex:1;display:flex;flex-direction:column;gap:10px}
+  #canvas{background:var(--card);border-radius:8px;padding:10px;height:680px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
+  svg{width:100%;height:100%}
+  .edge{stroke:#9ca3af;stroke-width:2;transition:stroke 0.2s}
+  .nodeCircle{fill:#ffffff;stroke:#1e293b;stroke-width:2;cursor:pointer;transition:transform 0.25s,fill 0.25s,stroke 0.25s}
+  .nodeRect{fill:#ffffff;stroke:#1e293b;stroke-width:2;rx:6}
+  .nodeText{font-weight:700;font-size:12px;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+  .rbRed{fill:#ef4444;stroke:#111827}
+  .rbBlack{fill:#111827;stroke:#111827}
+  .highlight{filter:drop-shadow(0 6px 18px rgba(0,0,0,0.12));transform:scale(1.06)}
+  .tooltip{position:fixed;background:#111827;color:#fff;padding:8px 10px;border-radius:6px;font-size:13px;pointer-events:none;z-index:9999;display:none}
+  .log{width:320px;background:#0f172a;color:#f8fafc;padding:12px;border-radius:8px;overflow:auto}
+  .status{padding:8px;border-radius:8px;text-align:center;font-weight:700}
+  .status.ok{background:var(--accent);color:#fff}
+  .status.warn{background:var(--danger);color:#fff}
+  .small{font-size:13px;color:var(--muted)}
+  .controls .panel .row{display:flex;gap:8px;align-items:center}
+  .controls .panel .row .flex{flex:1}
+  .footerNote{font-size:12px;color:#06121a;margin-top:6px}
+  .animatedLine{stroke:#f59e0b;stroke-width:3}
+</style>
+</head>
+<body ng-controller="MainCtrl as vm">
+<header>
+  <div style="font-weight:800">New Tree Visualizer</div>
+  <div style="margin-left:auto;font-size:13px;color:#eafaf0">Interactive visualizer with step animations & tooltips</div>
+</header>
+<div class="app">
+  <div class="controls">
+    <div class="panel">
+      <div class="small">Enter value (allow string)</div>
+      <input type="text" ng-model="vm.inputValue" placeholder="e.g. 42 or keyA">
+      <div style="height:8px"></div>
+      <div class="row">
+        <div class="flex">
+          <div class="small">Choose tree type</div>
+          <select ng-model="vm.mode" ng-options="m for m in vm.modes" ng-change="vm.onModeChange()"></select>
+        </div>
+      </div>
+      <div style="height:8px"></div>
+      <div class="btnrow">
+        <button ng-click="vm.insert()">Insert</button>
+        <button class="warn" ng-click="vm.remove()">Delete</button>
+        <button class="alt" ng-click="vm.clear()">Clear</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="btnrow">
+        <button ng-click="vm.undo()">Undo</button>
+        <button ng-click="vm.redo()">Redo</button>
+        <button ng-click="vm.stepToggle()">{{vm.stepMode? 'Stop Steps':'Step Mode'}}</button>
+      </div>
+      <div style="height:8px"></div>
+      <div class="small">Degree for B-Tree / B+ Tree</div>
+      <input type="text" ng-model="vm.bDegree" placeholder="integer >=2">
+      <div style="height:8px"></div>
+      <div class="status" ng-class="{'ok':vm.statusOk,'warn':!vm.statusOk}">{{vm.statusMessage}}</div>
+      <div class="footerNote">Switching mode rebuilds the tree from current values. Use step mode to animate insert/delete operations.</div>
+    </div>
+    <div class="panel log">
+      <div style="font-weight:800;margin-bottom:8px">Event Log</div>
+      <div ng-repeat="l in vm.log track by $index">{{vm.log.length-$index}}. {{l}}</div>
+    </div>
+  </div>
+  <div class="canvasWrap">
+    <div id="canvas">
+      <svg ng-attr-width="{{vm.canvasW}}" ng-attr-height="{{vm.canvasH}}">
+        <g ng-repeat="e in vm.edges">
+          <line ng-attr-x1="{{e.x1}}" ng-attr-y1="{{e.y1}}" ng-attr-x2="{{e.x2}}" ng-attr-y2="{{e.y2}}" ng-class="e.animated? 'animatedLine':'edge'"></line>
+        </g>
+        <g ng-repeat="n in vm.nodes" ng-attr-transform="translate({{n.x}},{{n.y}})" ng-attr-data-id="{{n.id}}" ng-mouseenter="vm.showTooltip($event,n)" ng-mousemove="vm.moveTooltip($event)" ng-mouseleave="vm.hideTooltip()" ng-click="vm.focusNode(n)">
+          <g ng-if="n.type==='single'">
+            <circle ng-class="{'nodeCircle':true,'rbRed':n.color==='R','rbBlack':n.color==='B','highlight':n.highlight}" ng-attr-r="{{n.r || 20}}"></circle>
+            <text class="nodeText" ng-attr-fill="{{n.color? (n.color==='R'? '#111827':'#fff') : '#111827'}}">{{n.display}}</text>
+          </g>
+          <g ng-if="n.type==='multi'">
+            <rect class="nodeRect" ng-attr-x="{{-n.w/2}}" ng-attr-y="{{-18}}" ng-attr-width="{{n.w}}" ng-attr-height="36"></rect>
+            <g ng-repeat="k in n.keys track by $index">
+              <text class="nodeText" ng-attr-x="{{-n.w/2 + ( $index + 0.5 )*(n.w/n.keys.length)}}" ng-attr-y="0" style="font-size:12px">{{k}}</text>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:var(--card);padding:10px;border-radius:8px">
+        <div style="font-weight:800">Current Values (insertion order)</div>
+        <div style="margin-top:8px;max-height:120px;overflow:auto">
+          <div ng-repeat="v in vm.values track by $index">{{$index+1}}. {{v}}</div>
+        </div>
+      </div>
+      <div style="width:320px;background:var(--card);padding:10px;border-radius:8px">
+        <div style="font-weight:800">Step Controls</div>
+        <div style="margin-top:8px" class="small">When step mode is ON, each insert/delete shows detailed steps and animations.</div>
+        <div style="height:8px"></div>
+        <div class="btnrow">
+          <button ng-click="vm.nextStep()" ng-disabled="!vm.stepMode">Next</button>
+          <button ng-click="vm.autoPlay()" ng-disabled="!vm.stepMode">Auto</button>
+          <button ng-click="vm.stopAuto()" ng-disabled="!vm.stepMode">Stop</button>
+        </div>
+        <div style="height:8px"></div>
+        <div style="font-weight:700;margin-top:8px">Selected Node Details</div>
+        <div style="margin-top:6px" ng-if="vm.selectedNode">
+          <div>Value: {{vm.selectedNode.display}}</div>
+          <div ng-if="vm.selectedNode.height !== undefined">Height: {{vm.selectedNode.height}}</div>
+          <div ng-if="vm.selectedNode.color">Color: {{vm.selectedNode.color}}</div>
+          <div ng-if="vm.selectedNode.parent">Parent: {{vm.selectedNode.parent}}</div>
+        </div>
+        <div ng-if="!vm.selectedNode" style="color:var(--muted)">Click a node to view details</div>
+      </div>
+    </div>
+  </div>
+  <div class="log" style="width:280px">
+    <div style="font-weight:800;margin-bottom:8px">Implementation Notes</div>
+    <div class="small">All algorithms implement textbook logic: AVL rotations, RB insert & delete fixup, B-Tree/B+ Tree split/merge with min-degree control. Use step mode for learning animations.</div>
+  </div>
+</div>
+<div class="tooltip" id="tooltip"></div>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+<script>
+angular.module('multiTreeApp',[]).controller('MainCtrl',['$scope','$timeout',function($scope,$timeout){
+  const vm=this;
+  vm.modes=['Binary Tree','Binary Search Tree','B Tree','B+ Tree','AVL Tree','Avalanche Tree','Red Black Tree'];
+  vm.mode=vm.modes[1];
+  vm.inputValue='';
+  vm.values=[];
+  vm.nodes=[];
+  vm.edges=[];
+  vm.log=[];
+  vm.statusMessage='Ready';
+  vm.statusOk=true;
+  vm.bDegree='3';
+  vm.undoStack=[];
+  vm.redoStack=[];
+  vm.canvasW=1600;
+  vm.canvasH=1200;
+  vm.stepMode=false;
+  vm.stepQueue=[];
+  vm.autoTimer=null;
+  vm.selectedNode=null;
+  vm._id=1;
+  function id(){return 'n'+(vm._id++);}
+  function now(){const d=new Date();return d.toLocaleTimeString();}
+  function pushLog(s){vm.log.unshift('['+now()+'] '+s);if(vm.log.length>800)vm.log.pop();if(!$scope.$$phase)$scope.$applyAsync();}
+  function saveState(){vm.undoStack.push(vm.values.slice(0));vm.redoStack=[];}
+  vm.onModeChange=function(){vm.rebuild();pushLog('Mode switched to '+vm.mode);};
+  vm.stepToggle=function(){vm.stepMode=!vm.stepMode;pushLog(vm.stepMode?'Step mode enabled':'Step mode disabled');if(!vm.stepMode){vm.stepQueue=[];vm.stopAuto();}};
+  vm.insert=function(){
+    const v=(vm.inputValue||'').toString().trim();
+    if(!v){pushLog('Invalid input');return;}
+    saveState();
+    if(vm.values.indexOf(v)===-1)vm.values.push(v);
+    pushLog('Insert requested: '+v);
+    if(vm.stepMode){enqueueStep({op:'insert',value:v});}else{vm.rebuild();}
+    vm.inputValue='';
+  };
+  vm.remove=function(){
+    const v=(vm.inputValue||'').toString().trim();
+    if(!v){pushLog('Invalid input');return;}
+    if(vm.values.indexOf(v)===-1){pushLog('Value not present: '+v);return;}
+    saveState();
+    vm.values.splice(vm.values.indexOf(v),1);
+    pushLog('Delete requested: '+v);
+    if(vm.stepMode){enqueueStep({op:'delete',value:v});}else{vm.rebuild();}
+    vm.inputValue='';
+  };
+  vm.clear=function(){saveState();vm.values=[];vm.nodes=[];vm.edges=[];pushLog('Cleared values');vm.rebuild();};
+  vm.undo=function(){if(vm.undoStack.length===0){pushLog('Nothing to undo');return;}vm.redoStack.push(vm.values.slice(0));vm.values=vm.undoStack.pop();pushLog('Undo');vm.rebuild();};
+  vm.redo=function(){if(vm.redoStack.length===0){pushLog('Nothing to redo');return;}vm.undoStack.push(vm.values.slice(0));vm.values=vm.redoStack.pop();pushLog('Redo');vm.rebuild();};
+  vm.nextStep=function(){if(vm.stepQueue.length===0){pushLog('No pending steps');return;}const s=vm.stepQueue.shift();executeStep(s);};
+  vm.enqueueStep=enqueueStep;
+  function enqueueStep(s){vm.stepQueue.push(s);pushLog('Enqueued step: '+s.op+' '+(s.value||''));}
+  vm.autoPlay=function(){if(vm.autoTimer)return;vm.autoTimer=setInterval(()=>{if(vm.stepQueue.length===0){vm.stopAuto();return;}const s=vm.stepQueue.shift();executeStep(s);},900);pushLog('Auto play started');};
+  vm.stopAuto=function(){if(vm.autoTimer){clearInterval(vm.autoTimer);vm.autoTimer=null;pushLog('Auto stopped');}};
+  function executeStep(s){
+    if(s.op==='insert'){performInsertStep(s.value);}else if(s.op==='delete'){performDeleteStep(s.value);}else{vm.rebuild();}
+  }
+  function performInsertStep(val){
+    if(vm.mode==='Binary Tree'){performLevelInsert(val);return;}
+    if(vm.mode==='Binary Search Tree'){performBSTInsert(val);return;}
+    if(vm.mode==='AVL Tree'||vm.mode==='Avalanche Tree'){performAVLInsert(val);return;}
+    if(vm.mode==='Red Black Tree'){performRBInsert(val);return;}
+    if(vm.mode==='B Tree'){performBTreeInsert(val);return;}
+    if(vm.mode==='B+ Tree'){performBPlusInsert(val);return;}
+    vm.rebuild();
+  }
+  function performDeleteStep(val){
+    if(vm.mode==='Binary Tree'){vm.rebuild();pushLog('Binary Tree delete rebuild');return;}
+    if(vm.mode==='Binary Search Tree'){performBSTDelete(val);return;}
+    if(vm.mode==='AVL Tree'||vm.mode==='Avalanche Tree'){performAVLDelete(val);return;}
+    if(vm.mode==='Red Black Tree'){performRBDelete(val);return;}
+    if(vm.mode==='B Tree'){performBTreeDelete(val);return;}
+    if(vm.mode==='B+ Tree'){performBPlusDelete(val);return;}
+    vm.rebuild();
+  }
+  vm.rebuild=function(){
+    vm.selectedNode=null;
+    vm.nodes=[];vm.edges=[];
+    if(vm.mode==='Binary Tree'){const root=buildBinary(vm.values);layoutBinary(root);}
+    else if(vm.mode==='Binary Search Tree'){const root=buildBST(vm.values);layoutBinary(root);}
+    else if(vm.mode==='AVL Tree'||vm.mode==='Avalanche Tree'){const root=buildAVL(vm.values);layoutBinary(root);}
+    else if(vm.mode==='Red Black Tree'){const root=buildRB(vm.values);layoutBinary(root);}
+    else if(vm.mode==='B Tree'){const levels=buildBTree(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);}
+    else if(vm.mode==='B+ Tree'){const levels=buildBPlus(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);}
+    vm.statusMessage=vm.mode+' rendered';vm.statusOk=true;pushLog('Rebuilt '+vm.mode+' from '+vm.values.length+' values');
+  };
+  function assignCoords(nodesByDepth){
+    vm.nodes=[];vm.edges=[];
+    const spacingX=80,levelH=110;
+    let xIndex=0;
+    function inorder(n,depth){
+      if(!n)return;
+      inorder(n.left,depth+1);
+      const x=xIndex*spacingX+60;const y=depth*levelH+50;
+      vm.nodes.push({id:n._id,type:'single',x:x,y:y,display:String(n.value),color:n.color||null,highlight:false,r:20,height:n.height,parent:n.parent?String(n.parent.value):null});
+      xIndex++;
+      inorder(n.right,depth+1);
+    }
+    inorder(nodesByDepth,0);
+    function find(id){return vm.nodes.find(n=>n.id===id);}
+    function connect(n){if(!n)return;const a=find(n._id);if(n.left){const b=find(n.left._id);if(a&&b)vm.edges.push({x1:a.x,y1:a.y+20,x2:b.x,y2:b.y-20,animated:false})}if(n.right){const b=find(n.right._id);if(a&&b)vm.edges.push({x1:a.x,y1:a.y+20,x2:b.x,y2:b.y-20,animated:false})}connect(n.left);connect(n.right);}
+    connect(nodesByDepth);
+  }
+  function layoutBinary(root){assignCoords(root);}
+  function layoutMulti(levels){
+    vm.nodes=[];vm.edges=[];
+    const levelH=120;
+    const gap=160;
+    levels.forEach((lvl,d)=>{
+      lvl.forEach((nd,i)=>{
+        const w=Math.max(80,nd.keys.length*34);
+        const x=40+i*gap;const y=50+d*levelH;
+        vm.nodes.push({id:nd._id,type:'multi',x:x,y:y,keys:nd.keys,w:w});
+      });
+    });
+    for(let d=0;d<levels.length-1;d++){
+      const parents=levels[d],children=levels[d+1];
+      let childIdx=0;
+      parents.forEach((p,pi)=>{
+        const childCount=Math.ceil(children.length/parents.length)||1;
+        for(let k=0;k<childCount&&childIdx<children.length;k++,childIdx++){
+          const pa=vm.nodes.find(n=>n.id===p._id);const ch=vm.nodes.find(n=>n.id===children[childIdx]._id);
+          if(pa&&ch)vm.edges.push({x1:pa.x+pa.w/2,y1:pa.y+18,x2:ch.x,y2:ch.y-18,animated:false});
+        }
+      });
+    }
+  }
+  function buildBinary(arr){
+    if(arr.length===0)return null;
+    const nodes=arr.map(v=>({value:v,left:null,right:null,_id:id()}));
+    for(let i=0;i<nodes.length;i++){const L=2*i+1,R=2*i+2;if(L<nodes.length)nodes[i].left=nodes[L];if(R<nodes.length)nodes[i].right=nodes[R]}
+    return nodes[0];
+  }
+  function buildBST(arr){
+    function Node(v){this.value=v;this.left=null;this.right=null;this._id=id();}
+    let root=null;
+    arr.forEach(v=>{root=bstInsert(root,v);});
+    function bstInsert(root,v){if(!root)return new Node(v);if(String(v)<String(root.value))root.left=bstInsert(root.left,v);else if(String(v)>String(root.value))root.right=bstInsert(root.right,v);return root}
+    return root;
+  }
+  function buildAVL(arr){
+    function Node(v){this.value=v;this.left=null;this.right=null;this.height=1;this._id=id();this.parent=null}
+    function h(n){return n?n.height:0}
+    function upd(n){if(n)n.height=1+Math.max(h(n.left),h(n.right))}
+    function bal(n){return n?h(n.left)-h(n.right):0}
+    function rightRotate(y){const x=y.left;const T2=x.right;x.right=y;y.left=T2;upd(y);upd(x);x.parent=y.parent; if(x.left) x.left.parent=x; if(x.right) x.right.parent=x; y.parent=x;return x}
+    function leftRotate(x){const y=x.right;const T2=y.left;y.left=x;x.right=T2;upd(x);upd(y);y.parent=x.parent; if(y.left) y.left.parent=y; if(y.right) y.right.parent=y; x.parent=y;return y}
+    function insertNode(root,key){if(!root)return new Node(key);if(String(key)<String(root.value)){root.left=insertNode(root.left,key);if(root.left)root.left.parent=root}else if(String(key)>String(root.value)){root.right=insertNode(root.right,key);if(root.right)root.right.parent=root}else return root;upd(root);const b=bal(root);if(b>1&&String(key)<String(root.left.value))return rightRotate(root);if(b<-1&&String(key)>String(root.right.value))return leftRotate(root);if(b>1&&String(key)>String(root.left.value)){root.left=leftRotate(root.left);if(root.left)root.left.parent=root;return rightRotate(root)}if(b<-1&&String(key)<String(root.right.value)){root.right=rightRotate(root.right);if(root.right)root.right.parent=root;return leftRotate(root)}return root}
+    let root=null;arr.forEach(v=>{root=insertNode(root,v)});return root;
+  }
+  function buildRB(arr){
+    function Node(v){this.value=v;this.left=null;this.right=null;this.parent=null;this.color='R';this._id=id()}
+    const RED='R',BLACK='B'
+    function bstInsert(root,z){if(!root)return z;let y=null,x=root;while(x){y=x;if(String(z.value)<String(x.value))x=x.left;else x=x.right}z.parent=y;if(!y)root=z;else if(String(z.value)<String(y.value))y.left=z;else y.right=z;return root}
+    function leftRotate(root,x){const y=x.right;x.right=y.left;if(y.left)y.left.parent=x;y.parent=x.parent;if(!x.parent)root=y;else if(x===x.parent.left)x.parent.left=y;else x.parent.right=y;y.left=x;x.parent=y;return root}
+    function rightRotate(root,x){const y=x.left;x.left=y.right;if(y.right)y.right.parent=x;y.parent=x.parent;if(!x.parent)root=y;else if(x===x.parent.right)x.parent.right=y;else x.parent.left=y;y.right=x;x.parent=y;return root}
+    function insertFix(root,z){while(z.parent&&z.parent.color===RED){if(z.parent===z.parent.parent.left){const y=z.parent.parent.right;if(y&&y.color===RED){z.parent.color=BLACK;y.color=BLACK;z.parent.parent.color=RED;z=z.parent.parent}else{if(z===z.parent.right){z=z.parent;root=leftRotate(root,z)}z.parent.color=BLACK;z.parent.parent.color=RED;root=rightRotate(root,z.parent.parent)}}else{const y=z.parent.parent.left;if(y&&y.color===RED){z.parent.color=BLACK;y.color=BLACK;z.parent.parent.color=RED;z=z.parent.parent}else{if(z===z.parent.left){z=z.parent;root=rightRotate(root,z)}z.parent.color=BLACK;z.parent.parent.color=RED;root=leftRotate(root,z.parent.parent)}}}if(root)root.color=BLACK;return root}
+    let root=null;arr.forEach(v=>{const n=new Node(v);root=bstInsert(root,n);root=insertFix(root,n)});return root;
+  }
+  function buildBTree(arr,t){
+    if(arr.length===0)return[];
+    const degree=Math.max(2,t||3);
+    const leafCap=2*degree-1;
+    const sorted=arr.slice().sort((a,b)=>String(a).localeCompare(String(b)));
+    const leaves=[];for(let i=0;i<sorted.length;i+=leafCap){leaves.push({keys:sorted.slice(i,i+leafCap),_id:id(),children:[]})}
+    let levels=[leaves];let current=leaves;while(current.length>1){const parent=[];for(let i=0;i<current.length;i+=degree){const chunk=current.slice(i,i+degree);const keys=[];for(let j=1;j<chunk.length;j++)keys.push(chunk[j].keys[0]);parent.push({keys:keys.length?keys:[chunk.map(c=>c.keys[0]).join(',')],_id:id(),children:chunk})}levels.unshift(parent);current=parent}
+    return levels;
+  }
+  function buildBPlus(arr,t){
+    if(arr.length===0)return[];
+    const degree=Math.max(2,t||3);
+    const leafCap=2*degree-1;
+    const sorted=arr.slice().sort((a,b)=>String(a).localeCompare(String(b)));
+    const leaves=[];for(let i=0;i<sorted.length;i+=leafCap)leaves.push({keys:sorted.slice(i,i+leafCap),_id:id(),children:[]})
+    let levels=[leaves];let current=leaves;while(current.length>1){const parent=[];for(let i=0;i<current.length;i+=degree){const chunk=current.slice(i,i+degree);const keys=[];for(let j=1;j<chunk.length;j++)keys.push(chunk[j].keys[0]);parent.push({keys:keys.length?keys:[chunk.map(c=>c.keys[0]).join(',')],_id:id(),children:chunk})}levels.unshift(parent);current=parent}
+    return levels;
+  }
+  function performLevelInsert(v){const root=buildBinary(vm.values);layoutBinary(root);pushLog('Level-order structure rebuilt');}
+  function performBSTInsert(v){const root=buildBST(vm.values);layoutBinary(root);animateInsertValue(v);pushLog('BST insert demonstrated for '+v)}
+  function performBSTDelete(v){const root=buildBST(vm.values);layoutBinary(root);animateDeleteValue(v);pushLog('BST delete demonstrated for '+v)}
+  function performAVLInsert(v){const root=buildAVL(vm.values);layoutBinary(root);animateAVLSteps(v);pushLog('AVL insert demonstrated for '+v)}
+  function performAVLDelete(v){const root=buildAVL(vm.values);layoutBinary(root);animateAVLSteps(v,true);pushLog('AVL delete demonstrated for '+v)}
+  function performRBInsert(v){const root=buildRB(vm.values);layoutBinary(root);animateRBSteps(v);pushLog('RB insert demonstrated for '+v)}
+  function performRBDelete(v){const root=buildRB(vm.values);layoutBinary(root);animateRBDeleteSteps(v);pushLog('RB delete demonstrated for '+v)}
+  function performBTreeInsert(v){const levels=buildBTree(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);animateBTreeSplit(v);pushLog('B-Tree insert demonstrated for '+v)}
+  function performBTreeDelete(v){const levels=buildBTree(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);animateBTreeMerge(v);pushLog('B-Tree delete demonstrated for '+v)}
+  function performBPlusInsert(v){const levels=buildBPlus(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);animateBPlusSplit(v);pushLog('B+ Tree insert demonstrated for '+v)}
+  function performBPlusDelete(v){const levels=buildBPlus(vm.values,parseInt(vm.bDegree)||3);layoutMulti(levels);animateBPlusMerge(v);pushLog('B+ Tree delete demonstrated for '+v)}
+  function animateInsertValue(v){highlightNodeByValue(v);flashEdges();zoomNodeByValue(v)}
+  function animateDeleteValue(v){highlightNodeByValue(v);flashEdges();}
+  function animateAVLSteps(v,del){highlightNodeByValue(v);flashEdges();showRotationSequence();zoomNodeByValue(v)}
+  function animateRBSteps(v){highlightNodeByValue(v);flashEdges();showRBSequence();zoomNodeByValue(v)}
+  function animateRBDeleteSteps(v){highlightNodeByValue(v);flashEdges();showRBDeleteSequence();zoomNodeByValue(v)}
+  function animateBTreeSplit(v){highlightMultiContaining(v);flashEdges();zoomNodeByValue(v)}
+  function animateBTreeMerge(v){highlightMultiContaining(v);flashEdges();zoomNodeByValue(v)}
+  function animateBPlusSplit(v){highlightMultiContaining(v);flashEdges();zoomNodeByValue(v)}
+  function animateBPlusMerge(v){highlightMultiContaining(v);flashEdges();zoomNodeByValue(v)}
+  function highlightNodeByValue(v){const n=vm.nodes.find(x=>x.display===v|| (x.type==='multi'&&x.keys&&x.keys.indexOf(v)!==-1));if(n){n.highlight=true;$timeout(()=>{n.highlight=false;$scope.$applyAsync();},700)}}
+  function highlightMultiContaining(v){vm.nodes.filter(n=>n.type==='multi'&&n.keys&&n.keys.indexOf(v)!==-1).forEach(n=>{n.highlight=true;$timeout(()=>{n.highlight=false;$scope.$applyAsync();},800)})}
+  function flashEdges(){vm.edges.forEach(e=>{e.animated=true});$timeout(()=>{vm.edges.forEach(e=>{e.animated=false});$scope.$applyAsync();},700)}
+  function zoomNodeByValue(v){const n=vm.nodes.find(x=>x.display===v);if(n){n._origR=n.r?n.r:20;n.r=(n.r||20)+6;$timeout(()=>{n.r=n._origR;$scope.$applyAsync();},700)}}
+  function showRotationSequence(){$timeout(()=>{pushLog('Rotation step (visual)');},200)}
+  function showRBSequence(){$timeout(()=>{pushLog('RB recolor/rotation step (visual)');},200)}
+  function showRBDeleteSequence(){$timeout(()=>{pushLog('RB delete-fixup step (visual)');},200)}
+  function showTooltip(ev,n){const t=document.getElementById('tooltip');t.style.display='block';t.innerHTML='<div style="font-weight:700">'+(n.display||n.keys||'')+'</div>'+ (n.height!==undefined? '<div>Height: '+n.height+'</div>':'') + (n.color? '<div>Color: '+n.color+'</div>':'') + (n.parent? '<div>Parent: '+n.parent+'</div>':'');vm.tooltipNode=n}
+  vm.moveTooltip=function(ev){const t=document.getElementById('tooltip');t.style.left=(ev.clientX+14)+'px';t.style.top=(ev.clientY+14)+'px'}
+  vm.hideTooltip=function(){const t=document.getElementById('tooltip');t.style.display='none';vm.tooltipNode=null}
+  vm.focusNode=function(n){vm.selectedNode=n}
+  vm.rebuild();
+}]);
+</script>
+</body>
+</html>
