@@ -3,39 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <title>New Tree Visualizer</title>
-<style>
-  :root{--bg:#15c26b;--card:#ffffff;--accent:#25eb88;--danger:#dc2626;--muted:#6b7280;--text:#0b1220}
-  html,body{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-  header{background:var(--bg);color:#fff;padding:14px 20px;font-size:18px;display:flex;align-items:center;gap:12px}
-  .app{display:flex;gap:12px;padding:12px;box-sizing:border-box;height:calc(100% - 64px)}
-  .controls{width:320px;display:flex;flex-direction:column;gap:10px}
-  .controls .panel{background:var(--card);padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
-  input[type="text"],select{width:100%;padding:10px;border-radius:8px;border:1px solid #e5e7eb;box-sizing:border-box;font-size:14px}
-  .btnrow{display:flex;gap:8px}
-  button{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
-  button.warn{background:var(--danger)}
-  button.alt{background:#f59e0b;color:#0b1220}
-  .canvasWrap{flex:1;display:flex;flex-direction:column;gap:10px}
-  #canvas{background:var(--card);border-radius:8px;padding:10px;height:680px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.08)}
-  svg{width:100%;height:100%}
-  .edge{stroke:#9ca3af;stroke-width:2;transition:stroke 0.2s}
-  .nodeCircle{fill:#ffffff;stroke:#1e293b;stroke-width:2;cursor:pointer;transition:transform 0.25s,fill 0.25s,stroke 0.25s}
-  .nodeRect{fill:#ffffff;stroke:#1e293b;stroke-width:2;rx:6}
-  .nodeText{font-weight:700;font-size:12px;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
-  .rbRed{fill:#ef4444;stroke:#111827}
-  .rbBlack{fill:#111827;stroke:#111827}
-  .highlight{filter:drop-shadow(0 6px 18px rgba(0,0,0,0.12));transform:scale(1.06)}
-  .tooltip{position:fixed;background:#111827;color:#fff;padding:8px 10px;border-radius:6px;font-size:13px;pointer-events:none;z-index:9999;display:none}
-  .log{width:320px;background:#0f172a;color:#f8fafc;padding:12px;border-radius:8px;overflow:auto}
-  .status{padding:8px;border-radius:8px;text-align:center;font-weight:700}
-  .status.ok{background:var(--accent);color:#fff}
-  .status.warn{background:var(--danger);color:#fff}
-  .small{font-size:13px;color:var(--muted)}
-  .controls .panel .row{display:flex;gap:8px;align-items:center}
-  .controls .panel .row .flex{flex:1}
-  .footerNote{font-size:12px;color:#06121a;margin-top:6px}
-  .animatedLine{stroke:#f59e0b;stroke-width:3}
-</style>
+<link rel="stylesheet" type="text/css" href="treevizualizercss.css">
 </head>
 <body ng-controller="MainCtrl as vm">
 <header>
@@ -347,3 +315,4 @@ angular.module('multiTreeApp',[]).controller('MainCtrl',['$scope','$timeout',fun
 </script>
 </body>
 </html>
+
